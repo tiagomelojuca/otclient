@@ -192,7 +192,12 @@ message(STATUS "Build revision: ${BUILD_REVISION}")
 add_definitions(-D"BUILD_REVISION=\\\"${BUILD_REVISION}\\\"")
 
 # find boost
-set(REQUIRED_BOOST_COMPONENTS system thread filesystem)
+set(REQUIRED_BOOST_COMPONENTS thread filesystem)
+# boost_system is header-only since 1.69 and its cmake package was removed in 1.89
+find_package(Boost 1.48.0 REQUIRED)
+if(Boost_MINOR_VERSION LESS 69)
+    list(APPEND REQUIRED_BOOST_COMPONENTS system)
+endif()
 if(WIN32)
     set(Boost_THREADAPI win32)
     set(framework_DEFINITIONS ${framework_DEFINITIONS} -DBOOST_THREAD_USE_LIB) # fix boost thread linkage
