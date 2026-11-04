@@ -25,6 +25,7 @@
 #include <framework/core/application.h>
 
 #include <physfs.h>
+#include <limits>
 
 FileStream::FileStream(const std::string& name, PHYSFS_File *fileHandle, bool writeable) :
     m_name(name),
@@ -66,9 +67,14 @@ void FileStream::cache()
         // cache entire file into data buffer
         m_pos = PHYSFS_tell(m_fileHandle);
         PHYSFS_seek(m_fileHandle, 0);
-        int size = PHYSFS_fileLength(m_fileHandle);
+        PHYSFS_sint64 size = PHYSFS_fileLength(m_fileHandle);
+        if(size < 0)
+            throwError("unable to get file length", true);
+        // positions are 32 bits wide, bigger files can't be cached
+        if(size > (PHYSFS_sint64)std::numeric_limits<uint>::max())
+            throwError("file is too big to be cached");
         m_data.resize(size);
-        if(PHYSFS_readBytes(m_fileHandle, m_data.data(), size) == -1)
+        if(PHYSFS_readBytes(m_fileHandle, m_data.data(), size) != size)
             throwError("unable to read file data", true);
         PHYSFS_close(m_fileHandle);
         m_fileHandle = nullptr;

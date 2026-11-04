@@ -422,8 +422,12 @@ void MapView::updateGeometry(const Size& visibleDimension, const Size& optimized
     int tileSize = 0;
     Size bufferSize;
 
-    int possiblesTileSizes[] = {1,2,4,8,16,32};
+    // tiles are never rendered bigger than the sprite resolution, the framebuffer is stretched instead
+    int possiblesTileSizes[] = {1,2,4,8,16,32,64,128,256};
     for(int candidateTileSize : possiblesTileSizes) {
+        if(candidateTileSize > Otc::SPRITE_PIXELS)
+            break;
+
         bufferSize = (visibleDimension + Size(3,3)) * candidateTileSize;
         if(bufferSize.width() > g_graphics.getMaxTextureSize() || bufferSize.height() > g_graphics.getMaxTextureSize())
             break;

@@ -26,7 +26,11 @@
 namespace Otc
 {
     enum {
+        // logical size of a tile, used by all game mechanics (walking, displacement, elevation...)
         TILE_PIXELS = 32,
+        // real size of a sprite in Tibia.spr, only affects rendering resolution
+        SPRITE_PIXELS = 64,
+        SPRITE_SCALE = SPRITE_PIXELS / TILE_PIXELS,
         MAX_ELEVATION = 24,
 
         SEA_FLOOR = 7,

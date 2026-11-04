@@ -25,12 +25,13 @@
 
 #include <framework/core/declarations.h>
 #include <framework/graphics/declarations.h>
+#include "const.h"
 
 //@bindsingleton g_sprites
 class SpriteManager
 {
     enum {
-        SPRITE_SIZE = 32,
+        SPRITE_SIZE = Otc::SPRITE_PIXELS,
         SPRITE_DATA_SIZE = SPRITE_SIZE*SPRITE_SIZE * 4
     };
 

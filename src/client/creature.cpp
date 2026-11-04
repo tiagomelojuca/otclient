@@ -209,13 +209,15 @@ void Creature::drawOutfit(const Rect& destRect, bool resize)
 
     if(g_graphics.canUseFBO()) {
         const FrameBufferPtr& outfitBuffer = g_framebuffers.getTemporaryFrameBuffer();
-        outfitBuffer->resize(Size(frameSize, frameSize));
+        // render at sprite resolution so the outfit keeps its full detail
+        const int bufferScale = Otc::SPRITE_SCALE;
+        outfitBuffer->resize(Size(frameSize, frameSize) * bufferScale);
         outfitBuffer->bind();
         g_painter->setAlphaWriting(true);
         g_painter->clear(Color::alpha);
-        internalDrawOutfit(Point(frameSize - Otc::TILE_PIXELS, frameSize - Otc::TILE_PIXELS) + getDisplacement(), 1, false, true, Otc::South);
+        internalDrawOutfit((Point(frameSize - Otc::TILE_PIXELS, frameSize - Otc::TILE_PIXELS) + getDisplacement()) * bufferScale, bufferScale, false, true, Otc::South);
         outfitBuffer->release();
-        outfitBuffer->draw(destRect, Rect(0,0,frameSize,frameSize));
+        outfitBuffer->draw(destRect, Rect(0,0,frameSize*bufferScale,frameSize*bufferScale));
     } else {
         float scaleFactor = destRect.width() / (float)frameSize;
         Point dest = destRect.bottomRight() - (Point(Otc::TILE_PIXELS,Otc::TILE_PIXELS) - getDisplacement()) * scaleFactor;

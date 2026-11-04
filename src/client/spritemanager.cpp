@@ -47,9 +47,8 @@ bool SpriteManager::loadSpr(std::string file)
     try {
         file = g_resources.guessFilePath(file, "spr");
 
+        // sprites are read on demand instead of caching the whole file, hi-res sprite files take gigabytes
         m_spritesFile = g_resources.openFile(file);
-        // cache file buffer to avoid lags from hard drive
-        m_spritesFile->cache();
 
         m_signature = m_spritesFile->getU32();
         m_spritesCount = g_game.getFeature(Otc::GameSpritesU32) ? m_spritesFile->getU32() : m_spritesFile->getU16();
@@ -148,6 +147,11 @@ ImagePtr SpriteManager::getSpriteImage(int id)
 
         uint16 pixelDataSize = m_spritesFile->getU16();
 
+        // read the whole sprite at once, the file is not cached in memory
+        static uint8 spriteData[0xFFFF];
+        if(m_spritesFile->read(spriteData, 1, pixelDataSize) != pixelDataSize)
+            stdext::throw_exception("unexpected end of file");
+
         ImagePtr image(new Image(Size(SPRITE_SIZE, SPRITE_SIZE)));
 
         uint8 *pixels = image->getPixelData();
@@ -157,9 +161,10 @@ ImagePtr SpriteManager::getSpriteImage(int id)
         uint8 channels = useAlpha ? 4 : 3;
 
         // decompress pixels
-        while(read < pixelDataSize && writePos < SPRITE_DATA_SIZE) {
-            uint16 transparentPixels = m_spritesFile->getU16();
-            uint16 coloredPixels = m_spritesFile->getU16();
+        while(read + 4 <= pixelDataSize && writePos < SPRITE_DATA_SIZE) {
+            uint16 transparentPixels = spriteData[read] | (spriteData[read + 1] << 8);
+            uint16 coloredPixels = spriteData[read + 2] | (spriteData[read + 3] << 8);
+            read += 4;
 
             for(int i = 0; i < transparentPixels && writePos < SPRITE_DATA_SIZE; i++) {
                 pixels[writePos + 0] = 0x00;
@@ -169,15 +174,14 @@ ImagePtr SpriteManager::getSpriteImage(int id)
                 writePos += 4;
             }
 
-            for(int i = 0; i < coloredPixels && writePos < SPRITE_DATA_SIZE; i++) {
-                pixels[writePos + 0] = m_spritesFile->getU8();
-                pixels[writePos + 1] = m_spritesFile->getU8();
-                pixels[writePos + 2] = m_spritesFile->getU8();
-                pixels[writePos + 3] = useAlpha ? m_spritesFile->getU8() : 0xFF;
+            for(int i = 0; i < coloredPixels && writePos < SPRITE_DATA_SIZE && read + channels <= pixelDataSize; i++) {
+                pixels[writePos + 0] = spriteData[read + 0];
+                pixels[writePos + 1] = spriteData[read + 1];
+                pixels[writePos + 2] = spriteData[read + 2];
+                pixels[writePos + 3] = useAlpha ? spriteData[read + 3] : 0xFF;
                 writePos += 4;
+                read += channels;
             }
-
-            read += 4 + (channels * coloredPixels);
         }
 
         // fill remaining pixels with alpha
